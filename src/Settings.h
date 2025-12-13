@@ -1,15 +1,23 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include <Arduino.h>
+
 // --- WIFI ---
-const char *WIFI_SSID = "Andy";
-const char *WIFI_PASS = "f001#f001";
+extern String WIFI_SSID;
+extern String WIFI_PASS;
 
 // Station & Display Settings
-const char *STATION_NAME = "Brugg AG";
-const int FETCH_LIMIT = 7;             // Rows to display (7 fits 4.2" screen)
-const long REFRESH_MS = 5 * 60 * 1000; // Refresh every 5 minutes (300,000 ms)
-const int MAX_DEST_LEN = 20;           // Increased from 16 to 20 chars
+extern String STATION_NAME;
+extern int FETCH_LIMIT;
+extern long REFRESH_MS;
+
+extern const int MAX_DEST_LEN;
+
+// --- FUNCTIONS ---
+void loadSettings();
+void saveSettings(String new_ssid, String new_pass, String new_station, int new_refresh_min);
+
 
 // --- PINS (ESP32-S3 SuperMini Right-Side Cluster) ---
 const int PIN_TOUCH = 10;
@@ -22,6 +30,6 @@ const int PIN_EINK_DC = 17;
 const int PIN_EINK_CLK = 18;
 
 // --- REGION ---
-const char *TIMEZONE_STR = "CET-1CEST,M3.5.0/2,M10.5.0/3"; // Zurich
+extern const char *TIMEZONE_STR;
 
 #endif
