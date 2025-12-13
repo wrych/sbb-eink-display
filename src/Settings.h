@@ -20,6 +20,7 @@ void saveSettings(String new_ssid, String new_pass, String new_station, int new_
 
 
 // --- PINS (ESP32-S3 SuperMini Right-Side Cluster) ---
+const int PIN_RGB_LED = 48; // Built-in RGB LED (WS2812) on SuperMini
 const int PIN_TOUCH = 10;
 
 const int PIN_EINK_BUSY = 4;

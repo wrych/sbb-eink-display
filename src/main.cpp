@@ -52,6 +52,7 @@ void enterConfigMode()
 {
     configMode = true;
     Serial.println("-- Entering Config Mode --");
+    statusLed.setState(LED_CONFIG); // Orange Breathing
 
     // Stop WiFi
     WiFi.disconnect(true);
@@ -76,6 +77,7 @@ void setup()
 
     // Init Hardware
     display.begin();
+    statusLed.begin(); // Init LED
     pinMode(PIN_TOUCH, INPUT); // Reverting to original INPUT (likely External Pulldown or relying on floating being low enough?)
 
     // Explicitly reading to check for boot hold (Active HIGH)
@@ -128,6 +130,7 @@ void setup()
     if (!configMode && WiFi.status() == WL_CONNECTED)
     {
         Serial.println("\nWiFi Connected!");
+        statusLed.setState(LED_RUNNING); // Green Solid
 
         // --- TIME SYNC (REQUIRED FOR TIMESTAMP) ---
         configTime(0, 0, "pool.ntp.org");

@@ -7,6 +7,7 @@
 #include <ArduinoJson.h>
 #include "Settings.h"
 #include "WeAct_EInk.h"
+#include "LedManager.h"
 
 // Fonts
 #include <Fonts/FreeMonoBold12pt7b.h>
@@ -112,6 +113,7 @@ void fetchSBB()
 
     if (http.begin(client, url))
     {
+        statusLed.setState(LED_UPDATING);
         if (http.GET() == HTTP_CODE_OK)
         {
             String payload = http.getString();
@@ -124,6 +126,7 @@ void fetchSBB()
             }
         }
         http.end();
+        statusLed.setState(LED_RUNNING);
     }
 }
 
