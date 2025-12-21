@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SBB E-Ink Config</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <header>
+      <div class="logo">
+        <svg viewBox="0 0 100 100" width="40" height="40">
+          <rect width="100" height="100" fill="#D30000" />
+          <path d="M20 50 L80 50 M50 20 L50 80" stroke="white" stroke-width="12" />
+        </svg>
+        <h1>SBB Display Config</h1>
+      </div>
+      <div id="status-badge" class="badge">Disconnected</div>
+    </header>
+
+    <main id="main-content">
+      <!-- Landing View -->
+      <section id="landing-view" class="view active">
+        <div class="card">
+          <h2>Setup Instructions</h2>
+          <ul class="instructions">
+            <li>
+              <span class="step-num">1</span>
+              <p>Press and hold the <strong>Config Button</strong> on your e-ink device for <strong>3 seconds</strong>
+                until the LED breaths orange.</p>
+            </li>
+            <li>
+              <span class="step-num">2</span>
+              <p>Verify the screen shows <strong>"Config Mode"</strong>.</p>
+            </li>
+            <li>
+              <span class="step-num">3</span>
+              <p>Click the button below and select <strong>"SBB_Display_Config"</strong> from the list.</p>
+            </li>
+          </ul>
+          <button id="connect-btn" class="btn primary">Connect Device</button>
+        </div>
+      </section>
+
+      <!-- Config View -->
+      <section id="config-view" class="view">
+        <div class="config-layout">
+          <div class="mirror-container">
+            <div class="eink-mirror">
+              <div class="mirror-header">
+                <span id="mirror-station">ZÜRICH HB</span>
+                <span id="mirror-time">10:45</span>
+              </div>
+              <div class="mirror-content">
+                <div class="arrival-row">
+                  <span class="time">10:52</span>
+                  <span class="dest">BERN</span>
+                  <span class="plat">3</span>
+                </div>
+                <div class="arrival-row">
+                  <span class="time">10:58</span>
+                  <span class="dest">LUZERN</span>
+                  <span class="plat">12</span>
+                </div>
+                <div class="arrival-row">
+                  <span class="time">11:04</span>
+                  <span class="dest">BASEL SBB</span>
+                  <span class="plat">5</span>
+                </div>
+              </div>
+              <div class="mirror-footer">
+                <span id="mirror-status">Updating via BLE...</span>
+              </div>
+            </div>
+            <p class="mirror-label">Live Preview Layout</p>
+          </div>
+
+          <div class="settings-form">
+            <div class="input-group">
+              <label for="wifi-ssid">WiFi SSID</label>
+              <input type="text" id="wifi-ssid" placeholder="Home WiFi">
+            </div>
+            <div class="input-group">
+              <label for="wifi-pass">WiFi Password</label>
+              <input type="password" id="wifi-pass" placeholder="••••••••">
+            </div>
+            <div class="input-group">
+              <label for="station-name">Station Name</label>
+              <input type="text" id="station-name" placeholder="e.g. Zürich HB">
+            </div>
+            <div class="input-group">
+              <label for="refresh-rate">Refresh Rate (min)</label>
+              <input type="number" id="refresh-rate" min="1" max="1440" value="10">
+            </div>
+
+            <div class="actions">
+              <button id="write-reboot-btn" class="btn primary">Write & Reboot</button>
+              <button id="write-btn" class="btn secondary">Write Settings</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast-container"></div>
+  </div>
+  <script type="module" src="./main.js"></script>
+</body>
+
+</html>
