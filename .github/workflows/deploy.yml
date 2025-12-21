@@ -7,6 +7,7 @@ on:
     paths:
       - 'web-config/**'
       - '.github/workflows/deploy.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
