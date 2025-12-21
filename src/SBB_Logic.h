@@ -14,10 +14,8 @@
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/FreeMono9pt7b.h>
 
+#include "WeatherUtils.h"
 #include "DisplayUtils.h"
-
-// Reference the global display object defined in main.cpp
-extern WeAct42_Driver display;
 
 const char *SBB_URL_BASE = "https://transport.opendata.ch/v1/stationboard";
 
@@ -32,70 +30,83 @@ void drawDepartures(JsonDocument &doc)
     display.setCursor(5, 35);
     display.println(utf8ToAscii(STATION_NAME));
 
-    // Timestamp
-    struct tm timeinfo;
-    if (getLocalTime(&timeinfo))
+    // Weather Fetch & Header Info
+    double lat = doc["station"]["coordinate"]["x"]; // SBB API x is lat
+    double lon = doc["station"]["coordinate"]["y"]; // SBB API y is lon
+    WeatherData weather = fetchWeather(lat, lon);
+
+    if (weather.valid)
     {
-        display.setFont(NULL);
-        display.setTextColor(EINK_BLACK);
-        display.setCursor(310, 12);
-        display.print("Last Update:");
+        drawWeatherSymbol(325, 22, weather.code);
         display.setFont(&FreeMonoBold9pt7b);
-        display.setCursor(310, 35);
-        char timeStr[6];
-        sprintf(timeStr, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-        display.print(timeStr);
-        display.fillRect(300, 42, 100, 3, EINK_RED);
+        display.setTextColor(EINK_BLACK);
+        display.setCursor(345, 30);
+        display.print(String(weather.temp, 1));
+        display.print("C");
     }
 
     // Connections
     display.setFont(&FreeMonoBold9pt7b);
     display.setTextColor(EINK_BLACK);
     JsonArray board = doc["stationboard"];
-    int yPos = 75;
+    int yPos = 75;        // Slightly higher start
+    int lineSpacing = 34; // Reduced from 35
 
     if (board.size() == 0)
     {
         display.setCursor(5, yPos);
         display.println("No Data / API Error");
-        return;
+    }
+    else
+    {
+        for (JsonObject conn : board)
+        {
+            String timeStr = String((const char *)conn["stop"]["departure"]).substring(11, 16);
+            int delay = conn["stop"]["delay"];
+            const char *cat = conn["category"];
+            const char *num = conn["number"];
+            const char *to = conn["to"];
+
+            display.setCursor(5, yPos);
+            display.setTextColor(EINK_BLACK);
+            display.print(timeStr);
+
+            if (delay > 0)
+            {
+                display.setTextColor(EINK_RED);
+                display.print("+");
+                display.print(delay);
+                display.print("'");
+            }
+
+            display.setTextColor(EINK_BLACK);
+            display.setCursor(100, yPos);
+            display.print(cat);
+            display.print(num);
+
+            String dest = utf8ToAscii(String(to));
+            if (dest.length() > MAX_DEST_LEN)
+                dest = dest.substring(0, MAX_DEST_LEN);
+            display.setCursor(160, yPos);
+            display.print(dest);
+
+            yPos += lineSpacing;
+        }
     }
 
-    for (JsonObject conn : board)
+    // Timestamp (Bottom Right)
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo))
     {
-        if (yPos > 290)
-            break;
-
-        String timeStr = String((const char *)conn["stop"]["departure"]).substring(11, 16);
-        int delay = conn["stop"]["delay"];
-        const char *cat = conn["category"];
-        const char *num = conn["number"];
-        const char *to = conn["to"];
-
-        display.setCursor(5, yPos);
+        display.setFont(NULL); // Smallest font
         display.setTextColor(EINK_BLACK);
-        display.print(timeStr);
-
-        if (delay > 0)
-        {
-            display.setTextColor(EINK_RED);
-            display.print("+");
-            display.print(delay);
-            display.print("'");
-        }
-
-        display.setTextColor(EINK_BLACK);
-        display.setCursor(100, yPos);
-        display.print(cat);
-        display.print(num);
-
-        String dest = utf8ToAscii(String(to));
-        if (dest.length() > MAX_DEST_LEN)
-            dest = dest.substring(0, MAX_DEST_LEN);
-        display.setCursor(160, yPos);
-        display.print(dest);
-
-        yPos += 35;
+        char updateStr[30];
+        sprintf(updateStr, "Last Update: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+        int16_t x1, y1;
+        uint16_t w, h;
+        display.getTextBounds(updateStr, 0, 0, &x1, &y1, &w, &h);
+        display.setCursor(400 - w - 5, 300 - h - 2);
+        display.print(updateStr);
     }
 }
 
@@ -127,7 +138,7 @@ void fetchSBB()
             }
         }
         http.end();
-        statusLed.setState(LED_RUNNING);
+        statusLed.setState(LED_OFF);
     }
 }
 
@@ -153,8 +164,9 @@ void drawQRCodePage()
 
     // Centering logic
     int scale = 6; // Adjust scale for visibility
-    if (WLAN_QR_SIZE > 33) scale = 4;
-    
+    if (WLAN_QR_SIZE > 33)
+        scale = 4;
+
     int qrTotalSize = WLAN_QR_SIZE * scale;
     int startX = (400 - qrTotalSize) / 2;
     int startY = 60 + (240 - qrTotalSize) / 2;

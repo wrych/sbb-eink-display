@@ -25,7 +25,11 @@ volatile bool shouldConfig = false;
 volatile bool shouldShowQR = false;
 
 // Pages
-enum Page { PAGE_SBB, PAGE_QR };
+enum Page
+{
+    PAGE_SBB,
+    PAGE_QR
+};
 Page currentPage = PAGE_SBB;
 unsigned long qrStartTime = 0;
 const unsigned long QR_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -81,7 +85,9 @@ void enterConfigMode()
 // --- SETUP ---
 void setup()
 {
-    Serial.begin(115200);
+    // CPU Frequency scaling (Battery Optimization)
+    // 80MHz is plenty for fetching and e-ink updates while saving power
+    setCpuFrequencyMhz(80);
 
     // Load Settings from NVS
     loadSettings();
@@ -89,18 +95,36 @@ void setup()
     // Init Hardware
     display.begin();
     statusLed.begin(); // Init LED
-    pinMode(PIN_TOUCH, INPUT); // Reverting to original INPUT (likely External Pulldown or relying on floating being low enough?)
+    pinMode(PIN_TOUCH, INPUT);
 
-    // Explicitly reading to check for boot hold (Active HIGH)
-    if (digitalRead(PIN_TOUCH) == HIGH)
+    // Check wakeup reason
+    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+
+    if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0 || wakeup_reason == ESP_SLEEP_WAKEUP_EXT1 || digitalRead(PIN_TOUCH) == HIGH)
     {
-        Serial.println("Boot Button Held -> Config Mode");
-        enterConfigMode();
+        // Simple hold detection in setup
+        unsigned long start = millis();
+        while (digitalRead(PIN_TOUCH) == HIGH && (millis() - start < 8500))
+        {
+            delay(10);
+        }
+        unsigned long duration = millis() - start;
+
+        if (duration > 8000)
+        {
+            enterConfigMode();
+        }
+        else if (duration > 3000)
+        {
+            shouldShowQR = true;
+        }
+        else if (duration > 50)
+        {
+            shouldUpdate = true;
+        }
     }
 
     attachInterrupt(digitalPinToInterrupt(PIN_TOUCH), onButton, CHANGE);
-
-    delay(1000); // Short delay
 
     // If not in config mode, connect to WiFi
     if (!configMode)
@@ -141,7 +165,7 @@ void setup()
     if (!configMode && WiFi.status() == WL_CONNECTED)
     {
         Serial.println("\nWiFi Connected!");
-        statusLed.setState(LED_RUNNING); // Green Solid
+        statusLed.setState(LED_OFF); // Battery Opt: LED off after connection
 
         // --- TIME SYNC (REQUIRED FOR TIMESTAMP) ---
         configTime(0, 0, "pool.ntp.org");
@@ -152,6 +176,33 @@ void setup()
         fetchSBB();
         lastUpdate = millis();
     }
+}
+
+void goToSleep()
+{
+    Serial.println("Preparing for Deep Sleep...");
+    delay(11000); // Increased to 5s to ensure display refresh completes
+
+    Serial.println("Entering Deep Sleep now.");
+    Serial.flush();
+
+    // Shut down hardware
+    display.powerDown();
+
+    // Calculate sleep time
+    // REFRESH_MS is already in milliseconds
+    esp_sleep_enable_timer_wakeup(REFRESH_MS * 1000ULL);
+
+    // Enable Wakeup on button (GPIO 10)
+    // ESP32-S3 EXT1 wakeup
+    esp_sleep_enable_ext1_wakeup(1ULL << PIN_TOUCH, ESP_EXT1_WAKEUP_ANY_HIGH);
+
+    statusLed.setState(LED_OFF);
+
+    // Final delay to ensure Serial finishes / Display finishes
+    delay(100);
+
+    esp_deep_sleep_start();
 }
 
 // --- LOOP ---
@@ -217,19 +268,24 @@ void loop()
         }
     }
 
-    // QR Timeout
-    if (currentPage == PAGE_QR && (millis() - qrStartTime > QR_TIMEOUT_MS))
+    // QR Timeout or Button press in QR mode
+    if (currentPage == PAGE_QR)
     {
-        Serial.println("QR Timeout -> Returning to SBB");
-        currentPage = PAGE_SBB;
-        fetchSBB();
-        lastUpdate = millis();
+        if (shouldUpdate || (millis() - qrStartTime > QR_TIMEOUT_MS))
+        {
+            Serial.println("Returning to SBB and Sleeping");
+            shouldUpdate = false;
+            currentPage = PAGE_SBB;
+            fetchSBB();
+            goToSleep();
+        }
+        delay(100);
+        return;
     }
 
-    if (currentPage == PAGE_SBB && (millis() - lastUpdate > REFRESH_MS))
+    // Default behavior for PAGE_SBB in loop:
+    if (currentPage == PAGE_SBB)
     {
-        Serial.println("Timer -> Auto Refreshing");
-        fetchSBB();
-        lastUpdate = millis();
+        goToSleep();
     }
 }

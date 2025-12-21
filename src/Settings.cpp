@@ -8,13 +8,13 @@ String WIFI_SSID = "";
 String WIFI_PASS = "";
 String STATION_NAME = "Zuerich HB";
 int FETCH_LIMIT = 7;
-long REFRESH_MS = 5 * 60 * 1000;
+long REFRESH_MS = 7 * 60 * 1000;
 bool WLAN_QR_ENABLED = false;
 uint8_t WLAN_QR_BITMAP[256] = {0};
 int WLAN_QR_SIZE = 0;
 
 // Region / Pins
-const int MAX_DEST_LEN = 20;
+const int MAX_DEST_LEN = 21;
 const char *TIMEZONE_STR = "CET-1CEST,M3.5.0/2,M10.5.0/3";
 
 void loadSettings()
@@ -28,7 +28,7 @@ void loadSettings()
     STATION_NAME = preferences.getString("station", STATION_NAME);
 
     // Load Refresh time (stored in minutes to save space/logic complexity?)
-    int refresh_min = preferences.getInt("refresh_min", 5);
+    int refresh_min = preferences.getInt("refresh_min", 7);
     REFRESH_MS = refresh_min * 60 * 1000;
 
     WLAN_QR_ENABLED = preferences.getBool("qr_enabled", false);
@@ -70,7 +70,7 @@ void saveSettings(String new_ssid, String new_pass, String new_station, int new_
     }
 
     // Invalidation logic: if SSID or Pass actually changed
-    if ((new_ssid.length() > 0 && new_ssid != WIFI_SSID) || 
+    if ((new_ssid.length() > 0 && new_ssid != WIFI_SSID) ||
         (new_pass.length() > 0 && new_pass != WIFI_PASS))
     {
         WLAN_QR_ENABLED = false;

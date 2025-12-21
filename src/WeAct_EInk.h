@@ -55,14 +55,23 @@ public:
         digitalWrite(_cs, HIGH);
     }
 
-    void waitBusy()
+    void waitBusy(const char* label = "unknown")
     {
+        delay(50); // Small initial delay to allow busy pin to transition
         unsigned long start = millis();
+        bool wasBusy = false;
         while (digitalRead(_busy) == HIGH)
         {
-            if (millis() - start > 10000)
+            wasBusy = true;
+            if (millis() - start > 15000) // 15s timeout
+            {
+                Serial.printf("WaitBusy [%s] TIMEOUT!\n", label);
                 break;
-            delay(1);
+            }
+            delay(10);
+        }
+        if (wasBusy) {
+            Serial.printf("WaitBusy [%s] done in %ums\n", label, (unsigned int)(millis() - start));
         }
     }
 
@@ -72,9 +81,9 @@ public:
         delay(20);
         digitalWrite(_rst, HIGH);
         delay(200);
-        waitBusy();
+        waitBusy("hw_reset");
         writeCMD(0x12);
-        waitBusy();
+        waitBusy("sw_reset");
 
         // CRITICAL FIX: Enable Red RAM (0x00 instead of 0x40)
         writeCMD(0x21);
@@ -141,7 +150,7 @@ public:
         for (int i = 0; i < 15000; i++)
             writeDATA(redBuffer[i]);
         writeCMD(0x20);
-        waitBusy();
+        waitBusy("refresh");
         writeCMD(0x10);
         writeDATA(0x01);
     }
@@ -151,6 +160,11 @@ public:
     {
         memset(blackBuffer, 0xFF, 15000);
         memset(redBuffer, 0x00, 15000);
+    }
+    void powerDown()
+    {
+        writeCMD(0x10);
+        writeDATA(0x01);
     }
 };
 #endif
