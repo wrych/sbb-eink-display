@@ -9,6 +9,9 @@ String WIFI_PASS = "";
 String STATION_NAME = "Zuerich HB";
 int FETCH_LIMIT = 7;
 long REFRESH_MS = 5 * 60 * 1000;
+bool WLAN_QR_ENABLED = false;
+uint8_t WLAN_QR_BITMAP[256] = {0};
+int WLAN_QR_SIZE = 0;
 
 // Region / Pins
 const int MAX_DEST_LEN = 20;
@@ -27,6 +30,10 @@ void loadSettings()
     // Load Refresh time (stored in minutes to save space/logic complexity?)
     int refresh_min = preferences.getInt("refresh_min", 5);
     REFRESH_MS = refresh_min * 60 * 1000;
+
+    WLAN_QR_ENABLED = preferences.getBool("qr_enabled", false);
+    WLAN_QR_SIZE = preferences.getInt("qr_size", 0);
+    preferences.getBytes("qr_bitmap", WLAN_QR_BITMAP, 256);
 
     preferences.end();
 
@@ -62,6 +69,25 @@ void saveSettings(String new_ssid, String new_pass, String new_station, int new_
         REFRESH_MS = new_refresh_min * 60 * 1000;
     }
 
+    // Invalidation logic: if SSID or Pass actually changed
+    if ((new_ssid.length() > 0 && new_ssid != WIFI_SSID) || 
+        (new_pass.length() > 0 && new_pass != WIFI_PASS))
+    {
+        WLAN_QR_ENABLED = false;
+        preferences.putBool("qr_enabled", false);
+        Serial.println("WLAN Settings changed -> QR Code Invalidated");
+    }
+
     preferences.end();
     Serial.println("Settings Saved to NVS");
+}
+
+void saveWLANQR()
+{
+    preferences.begin("sbb_config", false);
+    preferences.putBool("qr_enabled", WLAN_QR_ENABLED);
+    preferences.putInt("qr_size", WLAN_QR_SIZE);
+    preferences.putBytes("qr_bitmap", WLAN_QR_BITMAP, 256);
+    preferences.end();
+    Serial.println("WLAN QR Saved to NVS");
 }

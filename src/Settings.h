@@ -12,11 +12,17 @@ extern String STATION_NAME;
 extern int FETCH_LIMIT;
 extern long REFRESH_MS;
 
+// WLAN QR Code Settings
+extern bool WLAN_QR_ENABLED;
+extern uint8_t WLAN_QR_BITMAP[256];
+extern int WLAN_QR_SIZE; // Actual size (e.g. 33 for 33x33)
+
 extern const int MAX_DEST_LEN;
 
 // --- FUNCTIONS ---
 void loadSettings();
 void saveSettings(String new_ssid, String new_pass, String new_station, int new_refresh_min);
+void saveWLANQR(); // Save QR specific settings
 
 
 // --- PINS (ESP32-S3 SuperMini Right-Side Cluster) ---

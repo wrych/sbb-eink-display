@@ -22,6 +22,13 @@ unsigned long lastUpdate = 0;
 volatile unsigned long pressStartTime = 0;
 volatile bool shouldUpdate = false;
 volatile bool shouldConfig = false;
+volatile bool shouldShowQR = false;
+
+// Pages
+enum Page { PAGE_SBB, PAGE_QR };
+Page currentPage = PAGE_SBB;
+unsigned long qrStartTime = 0;
+const unsigned long QR_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 void IRAM_ATTR onButton()
 {
@@ -35,9 +42,13 @@ void IRAM_ATTR onButton()
         if (pressStartTime > 0)
         {
             unsigned long duration = millis() - pressStartTime;
-            if (duration > 3000)
+            if (duration > 8000)
             {
                 shouldConfig = true;
+            }
+            else if (duration > 3000)
+            {
+                shouldShowQR = true;
             }
             else if (duration > 50)
             { // Debounce 50ms
@@ -174,12 +185,48 @@ void loop()
         delay(200); // UI Debounce visual
         shouldUpdate = false;
 
-        Serial.println("Button Trigger -> Updating");
+        if (currentPage == PAGE_QR)
+        {
+            Serial.println("Button Trigger -> Returning to SBB");
+            currentPage = PAGE_SBB;
+            fetchSBB();
+            lastUpdate = millis();
+        }
+        else
+        {
+            Serial.println("Button Trigger -> Updating");
+            fetchSBB();
+            lastUpdate = millis();
+        }
+    }
+
+    if (shouldShowQR)
+    {
+        shouldShowQR = false;
+        if (WLAN_QR_ENABLED)
+        {
+            Serial.println("Button Trigger -> Showing QR Page");
+            currentPage = PAGE_QR;
+            qrStartTime = millis();
+            drawQRCodePage();
+            display.display();
+        }
+        else
+        {
+            Serial.println("QR Not Enabled in Settings");
+        }
+    }
+
+    // QR Timeout
+    if (currentPage == PAGE_QR && (millis() - qrStartTime > QR_TIMEOUT_MS))
+    {
+        Serial.println("QR Timeout -> Returning to SBB");
+        currentPage = PAGE_SBB;
         fetchSBB();
         lastUpdate = millis();
     }
 
-    if (millis() - lastUpdate > REFRESH_MS)
+    if (currentPage == PAGE_SBB && (millis() - lastUpdate > REFRESH_MS))
     {
         Serial.println("Timer -> Auto Refreshing");
         fetchSBB();
