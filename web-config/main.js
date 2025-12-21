@@ -25,9 +25,6 @@ const wifiPassInput = document.getElementById('wifi-pass');
 const stationInput = document.getElementById('station-name');
 const refreshInput = document.getElementById('refresh-rate');
 
-// Mirror Elements
-const mirrorStation = document.getElementById('mirror-station');
-
 // --- UTILS ---
 
 function showToast(message, type = 'info') {
@@ -37,14 +34,6 @@ function showToast(message, type = 'info') {
   toastContainer.appendChild(toast);
   setTimeout(() => toast.remove(), 4000);
 }
-
-function updateMirror() {
-  mirrorStation.textContent = (stationInput.value || "ZÜRICH HB").toUpperCase();
-}
-
-stationInput.addEventListener('input', updateMirror);
-
-// --- BLE LOGIC ---
 
 async function connect() {
   try {
@@ -103,7 +92,6 @@ async function readAllSettings() {
     wifiSsidInput.value = await readCharacteristic(CHAR_SSID_UUID);
     stationInput.value = await readCharacteristic(CHAR_STATION_UUID);
     refreshInput.value = await readCharacteristic(CHAR_REFRESH_UUID);
-    updateMirror();
   } catch (e) {
     console.warn("Could not read some characteristics", e);
   }
