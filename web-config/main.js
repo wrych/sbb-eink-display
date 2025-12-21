@@ -18,6 +18,9 @@ const statusBadge = document.getElementById('status-badge');
 const landingView = document.getElementById('landing-view');
 const configView = document.getElementById('config-view');
 const toastContainer = document.getElementById('toast-container');
+const togglePasswordBtn = document.getElementById('toggle-password');
+const eyeIcon = togglePasswordBtn.querySelector('.eye-icon');
+const eyeOffIcon = togglePasswordBtn.querySelector('.eye-off-icon');
 
 // Inputs
 const wifiSsidInput = document.getElementById('wifi-ssid');
@@ -145,3 +148,12 @@ async function writeSettings(reboot = false) {
 connectBtn.addEventListener('click', connect);
 writeBtn.addEventListener('click', () => writeSettings(false));
 writeRebootBtn.addEventListener('click', () => writeSettings(true));
+
+togglePasswordBtn.addEventListener('click', () => {
+  const type = wifiPassInput.type === 'password' ? 'text' : 'password';
+  wifiPassInput.type = type;
+
+  // Toggle Icons
+  eyeIcon.classList.toggle('hidden', type === 'text');
+  eyeOffIcon.classList.toggle('hidden', type === 'password');
+});
