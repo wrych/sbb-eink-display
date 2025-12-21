@@ -327,3 +327,54 @@ main {
     transform: rotate(360deg);
   }
 }
+
+.checkbox-group {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center !important;
+  gap: 12px;
+  cursor: pointer;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.checkbox-group input {
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  accent-color: var(--sbb-red);
+}
+
+.qr-preview {
+  margin-top: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid var(--sbb-grey);
+}
+
+.qr-preview.hidden {
+  display: none;
+}
+
+.qr-preview label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+#qr-canvas-holder {
+  background: white;
+  padding: 10px;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.qr-preview .hint {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 10px;
+}

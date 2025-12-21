@@ -86,6 +86,17 @@
               <input type="number" id="refresh-rate" min="1" max="1440" value="10">
             </div>
 
+            <div class="input-group checkbox-group">
+              <input type="checkbox" id="qr-enabled">
+              <label for="qr-enabled">Enable Guest WLAN QR Code</label>
+            </div>
+
+            <div id="qr-preview-container" class="qr-preview hidden">
+              <label>QR Code Preview</label>
+              <div id="qr-canvas-holder"></div>
+              <p class="hint">This QR will be sent as a bitmap to the display.</p>
+            </div>
+
             <div class="actions">
               <button id="write-reboot-btn" class="btn primary">Write & Reboot</button>
               <button id="write-btn" class="btn secondary">Write Settings</button>
