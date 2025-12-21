@@ -53,7 +53,7 @@ void drawConfigScreen()
     drawConfigLine("REFRESH", "7674", String(REFRESH_MS / 60000) + " min(s)", y);
     y += step;
     drawConfigLine("GUEST QR", "7676", WLAN_QR_ENABLED ? "ENABLED" : "DISABLED", y);
-    y += step * 2;
+    y += step * 1;
     display.setCursor(2, y);
     display.setTextColor(EINK_BLACK);
     display.setFont(&FreeMono9pt7b);

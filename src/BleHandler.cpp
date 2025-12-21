@@ -109,7 +109,7 @@ void BleHandler::begin() {
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
-  BLEService *pService = pServer->createService(SERVICE_UUID);
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 40, 0);
 
   // SSID
   BLECharacteristic *pSsid = pService->createCharacteristic(
@@ -161,6 +161,14 @@ void BleHandler::begin() {
   pQrEnable->setValue(WLAN_QR_ENABLED ? "1" : "0");
   pQrEnable->setCallbacks(new SettingsCallback());
 
+  // QR Bitmap
+  BLECharacteristic *pQrBitmap = pService->createCharacteristic(
+                                          CHAR_QR_BITMAP_UUID,
+                                          BLECharacteristic::PROPERTY_READ |
+                                          BLECharacteristic::PROPERTY_WRITE
+                                        );
+  pQrBitmap->setCallbacks(new SettingsCallback());
+
   // QR Size
   BLECharacteristic *pQrSize = pService->createCharacteristic(
                                           CHAR_QR_SIZE_UUID,
@@ -169,14 +177,6 @@ void BleHandler::begin() {
                                         );
   pQrSize->setValue(String(WLAN_QR_SIZE).c_str());
   pQrSize->setCallbacks(new SettingsCallback());
-
-  // QR Bitmap
-  BLECharacteristic *pQrBitmap = pService->createCharacteristic(
-                                          CHAR_QR_BITMAP_UUID,
-                                          BLECharacteristic::PROPERTY_READ |
-                                          BLECharacteristic::PROPERTY_WRITE
-                                        );
-  pQrBitmap->setCallbacks(new SettingsCallback());
 
   pService->start();
 
