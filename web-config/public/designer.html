@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Ink Icon Designer</title>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs/loader.js"></script>
+    <style>
+        :root {
+            --sbb-red: #eb0000;
+            --sbb-black: #000000;
+            --sbb-white: #ffffff;
+            --bg-gray: #f4f4f4;
+            --border-color: #ccc;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-gray);
+        }
+
+        header {
+            background-color: var(--sbb-red);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 40px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            position: relative;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100% - 60px);
+            width: 100%;
+        }
+
+        #editor-container {
+            flex: 1;
+            height: 100%;
+            border-right: 2px solid var(--border-color);
+        }
+
+        #preview-container {
+            width: 450px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #e0e0e0;
+            overflow-y: auto;
+        }
+
+        .canvas-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        canvas {
+            border: 1px solid #000;
+            background-color: white;
+            image-rendering: pixelated;
+            max-width: 100%;
+        }
+
+        .controls {
+            margin-top: 20px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input {
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .status {
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .status.error {
+            background-color: #fee;
+            color: #b00;
+            border: 1px solid #fcc;
+        }
+
+        .status.success {
+            background-color: #efe;
+            color: #080;
+            border: 1px solid #cfc;
+        }
+
+        .btn {
+            background-color: var(--sbb-red);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div style="font-weight: bold; display: flex; align-items: center; gap: 10px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                <path
+                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+            </svg>
+            E-INK ICON DESIGNER
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-outline" onclick="exportCode()">EXPORT C++</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="editor-container"></div>
+        <div id="preview-container">
+            <div class="canvas-card">
+                <canvas id="eink-canvas" width="64" height="64"></canvas>
+                <div class="controls">
+                    <div class="control-group">
+                        <label>WIDTH</label>
+                        <input type="number" id="canvas-width" value="64" onchange="resizeCanvas()">
+                    </div>
+                    <div class="control-group">
+                        <label>HEIGHT</label>
+                        <input type="number" id="canvas-height" value="64" onchange="resizeCanvas()">
+                    </div>
+                </div>
+                <div id="status-box" class="status success">Ready</div>
+            </div>
+
+            <div style="margin-top: 20px; width: 100%; font-size: 13px; color: #666;">
+                <p><b>Tips:</b></p>
+                <ul>
+                    <li>Use <code>display.fillCircle(x, y, r, color)</code></li>
+                    <li>Colors: <code>EINK_BLACK</code>, <code>EINK_WHITE</code>, <code>EINK_RED</code></li>
+                    <li>Math: <code>sin()</code>, <code>cos()</code>, <code>PI</code> are available directly</li>
+                    <li>Example: <code>display.fillRect(0, 0, 100, 50, EINK_RED)</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let editor;
+        const canvas = document.getElementById('eink-canvas');
+        const ctx = canvas.getContext('2d');
+        const statusBox = document.getElementById('status-box');
+
+        // Constants to match C++ code
+        const EINK_BLACK = 'black';
+        const EINK_WHITE = 'white';
+        const EINK_RED = '#eb0000';
+
+        // Mock constants for the environment
+        const environment = {
+            EINK_BLACK,
+            EINK_WHITE,
+            EINK_RED,
+            sin: Math.sin,
+            cos: Math.cos,
+            PI: Math.PI,
+            abs: Math.abs,
+            min: Math.min,
+            max: Math.max,
+            pow: Math.pow,
+            sqrt: Math.sqrt
+        };
+
+        class EInkSim {
+            constructor(context) {
+                this.ctx = context;
+                this.cursorX = 0;
+                this.cursorY = 0;
+                this.textColor = EINK_BLACK;
+                this.textSize = 12;
+                this.font = 'Arial';
+            }
+
+            _getHex(color) {
+                if (color === 'black') return '#000000';
+                if (color === 'white') return '#ffffff';
+                return color; // Red or hex
+            }
+
+            drawLine(x1, y1, x2, y2, color) {
+                this.ctx.strokeStyle = this._getHex(color);
+                this.ctx.beginPath();
+                this.ctx.moveTo(x1, y1);
+                this.ctx.lineTo(x2, y2);
+                this.ctx.stroke();
+            }
+
+            drawRect(x, y, w, h, color) {
+                this.ctx.strokeStyle = this._getHex(color);
+                this.ctx.strokeRect(x, y, w, h);
+            }
+
+            fillRect(x, y, w, h, color) {
+                this.ctx.fillStyle = this._getHex(color);
+                this.ctx.fillRect(x, y, w, h);
+            }
+
+            drawCircle(x, y, r, color) {
+                this.ctx.strokeStyle = this._getHex(color);
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, r, 0, 2 * Math.PI);
+                this.ctx.stroke();
+            }
+
+            fillCircle(x, y, r, color) {
+                this.ctx.fillStyle = this._getHex(color);
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, r, 0, 2 * Math.PI);
+                this.ctx.fill();
+            }
+
+            drawPixel(x, y, color) {
+                this.ctx.fillStyle = this._getHex(color);
+                this.ctx.fillRect(x, y, 1, 1);
+            }
+
+            setCursor(x, y) {
+                this.cursorX = x;
+                this.cursorY = y;
+            }
+
+            setTextColor(color) {
+                this.textColor = color;
+            }
+
+            setTextSize(size) {
+                this.textSize = size * 8; // Approximation
+            }
+
+            print(text) {
+                this.ctx.fillStyle = this._getHex(this.textColor);
+                this.ctx.font = `${this.textSize}px ${this.font}`;
+                this.ctx.fillText(text, this.cursorX, this.cursorY);
+                const metrics = this.ctx.measureText(text);
+                this.cursorX += metrics.width;
+            }
+
+            println(text) {
+                this.print(text);
+                this.cursorX = 0;
+                this.cursorY += this.textSize;
+            }
+
+            clearBuffer() {
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        const display = new EInkSim(ctx);
+
+        require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs' } });
+
+        require(['vs/editor/editor.main'], function () {
+            const initialCode = localStorage.getItem('eink_designer_code') || `// Welcome to the e-ink Icon Designer!
+// Use functions like:
+// display.fillCircle(x, y, r, color)
+// display.drawLine(x1, y1, x2, y2, color)
+
+display.clearBuffer();
+
+const x = 32;
+const y = 32;
+
+// Draw a sun like in WeatherUtils.h
+display.fillCircle(x, y, 12, EINK_RED); 
+for (let i = 0; i < 15; i++) {
+    let a = i * 45 * PI / 180.0;
+    display.drawLine(
+        x + 20 * cos(a), 
+        y + 20 * sin(a), 
+        x + 28 * cos(a), 
+        y + 28 * sin(a), 
+        EINK_RED
+    );
+}
+`;
+
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: initialCode,
+                language: 'javascript',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                fontSize: 14,
+                minimap: { enabled: false }
+            });
+
+            editor.onDidChangeModelContent(() => {
+                updatePreview();
+                saveCode();
+            });
+
+            // Initialize preview
+            updatePreview();
+        });
+
+        function updatePreview() {
+            if (!editor) return;
+            const code = editor.getValue();
+
+            try {
+                // Prepare evaluation context
+                const evalArgs = ['display', ...Object.keys(environment)];
+                const evalValues = [display, ...Object.values(environment)];
+
+                // Create a function that executes the code with our context
+                const runner = new Function(...evalArgs, code);
+
+                // Reset canvas
+                display.clearBuffer();
+
+                // Run it
+                runner(...evalValues);
+
+                statusBox.textContent = 'Success - Rendering updated';
+                statusBox.className = 'status success';
+            } catch (err) {
+                statusBox.textContent = 'Error: ' + err.message;
+                statusBox.className = 'status error';
+            }
+        }
+
+        function saveCode() {
+            if (editor) {
+                localStorage.setItem('eink_designer_code', editor.getValue());
+            }
+        }
+
+        function resizeCanvas() {
+            const w = document.getElementById('canvas-width').value;
+            const h = document.getElementById('canvas-height').value;
+            canvas.width = w;
+            canvas.height = h;
+            updatePreview();
+        }
+
+        function exportCode() {
+            const code = editor.getValue();
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'icon_code.js';
+            a.click();
+        }
+    </script>
+
+</body>
+
+</html>
